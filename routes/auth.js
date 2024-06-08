@@ -14,7 +14,7 @@ const validateUser = [
     .isLength({min: 8}).withMessage('Password must be atleast 8 characters')
     .isStrongPassword().withMessage('Password must contain atleast one uppercase, one lowercase, and one symbol.'),
     body('phone').isMobilePhone().withMessage('Please enter a valid phone number'),
-];
+]; 
 
 router.post('/login', authController.login);
 

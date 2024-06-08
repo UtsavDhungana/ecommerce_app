@@ -3,6 +3,7 @@ const {User} = require('../models/user');
 const {Token} = require('../models/token');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mailSender = require('../helpers/email_sender');
 
 exports.register = async function(req, res) {
     //validate the user
@@ -74,14 +75,13 @@ exports.login = async function(req, res) {
         user.passwordHash = undefined;
         return res.json({...user._doc, accessToken});
     } catch(error){
-        console.log(error);
         return res.status(500).json({type:error.name, message: error.message});
     }
 }
 
 exports.verifyToken = async function(req, res){
     try{
-        const accessToken = req.headers.authorization;
+        let accessToken = req.headers.authorization;
         if(!accessToken) return res.json(false);
         accessToken = accessToken.replace('Bearer', '').trim();
 
@@ -99,17 +99,40 @@ exports.verifyToken = async function(req, res){
         return res.json(true);
          
     } catch(error){
-        console.log(error);
         return res.status(500).json({type:error.name, message: error.message});
     }
 }
+
 exports.forgetPassword = async function(req, res) {
     try{
-        
+        const {email} = req.body;
+        const user = await User.findOne({email});
+
+        if(!user){
+            return res.status(404).json({
+                message: "User with that email does not exists!."
+            });
+        }
+
+        const otp = Math.floor(1000 + Math.random() * 9000);
+
+        user.resetPasswordOtp = otp;
+        user.resetPasswordOtpExpires = Date.now() + 600000;
+        await user.save();
+
+        const response = await mailSender.sendMail(
+            email, 
+            "Password Reset OTP",
+            `Your OTP for password reset is: ${otp}`,
+        );
+
+        return res.json({message: response});
+
     } catch(error){
-        console.log(error);
         return res.status(500).json({type:error.name, message: error.message});
     }
 }
-exports.verifyPasswordResetOTP = async function(req, res) {}
+exports.verifyPasswordResetOTP = async function(req, res) {
+    
+}
 exports.resetPassword = async function(req, res) {}
